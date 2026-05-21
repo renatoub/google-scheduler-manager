@@ -495,8 +495,16 @@ function Write-Log([string]$msg, [string]$level = "INFO") {
 # ================================================================
 function Decode-Body([string]$b64) {
     # Decode base64 string to UTF-8 text / Decodifica base64 para texto UTF-8
+    # GCP returns base64url (RFC 4648 §5): '-' instead of '+', '_' instead of '/',
+    # and no '=' padding. [Convert]::FromBase64String requires standard base64 with padding.
+    # GCP retorna base64url: '-' em vez de '+', '_' em vez de '/', sem padding '='.
     if (-not $b64) { return "" }
     try {
+        $b64 = $b64.Replace('-', '+').Replace('_', '/')
+        switch ($b64.Length % 4) {
+            2 { $b64 += '==' }
+            3 { $b64 += '='  }
+        }
         $bytes = [System.Convert]::FromBase64String($b64)
         return [System.Text.Encoding]::UTF8.GetString($bytes)
     } catch { return "[error decoding / erro ao decodificar]" }
