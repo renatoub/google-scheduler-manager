@@ -479,8 +479,18 @@ check_deps() {
 # BASE64 DECODE / DECODIFICACAO BASE64
 # ================================================================
 decode_body() {
+  # GCP returns base64url (RFC 4648 §5): '-' instead of '+', '_' instead of '/',
+  # and no '=' padding. Normalize to standard base64 before decoding.
+  # GCP retorna base64url: '-' em vez de '+', '_' em vez de '/', sem padding '='.
   local b64="$1"
   [[ -z "$b64" ]] && echo "" && return
+  # Convert base64url alphabet to standard base64
+  b64=$(echo "$b64" | tr -- '-_' '+/')
+  # Restore '=' padding
+  local pad=$(( ${#b64} % 4 ))
+  if   [[ $pad -eq 2 ]]; then b64="${b64}=="
+  elif [[ $pad -eq 3 ]]; then b64="${b64}="
+  fi
   echo "$b64" | base64 --decode 2>/dev/null || echo "[error decoding / erro ao decodificar]"
 }
 
